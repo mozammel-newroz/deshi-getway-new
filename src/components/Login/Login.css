@@ -1,0 +1,130 @@
+* {
+    box-sizing: border-box;
+    font-family: 'Montserrat', sans-serif;
+}
+
+  .gateway {
+    height: 100vh;
+    display: flex; 
+    align-items: center;
+    justify-content: center; 
+    padding: 35px;
+    /* padding-top: 40px;
+    padding-bottom: 40px; */
+    background: #E5E5E5;
+  }
+  
+  .form-signin {
+    width: 100%;
+    max-width: 530px;
+    /* padding: 15px; */
+    margin: auto;
+    background: #F5F5F5;
+  }
+
+  
+  .header {
+    background: #FFFFFF;
+    display: flex;
+    justify-content:space-between;
+    align-items: center;
+  }
+
+  /* .form-signin .form-floating:focus-within {
+    z-index: 2;
+  }
+   */
+   
+  /* .form-signin input {
+    background-color: lightgrey;
+  } */
+
+  .fs-14{
+    font-size: 14px;
+    
+  }
+
+  .custom-title{
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .fs-18 {
+    font-size: 18px;
+    font-weight: 500;
+  } 
+
+  .fs-24{
+    font-size: 24px;
+    font-weight: 600;
+  }
+
+  footer{
+    background: #FFFFFF;
+    font-weight: 500;
+  }
+
+  .button-close{
+    background: #999999 !important;
+  }
+
+  .btn-confirm {
+    background: #00C52A !important;
+  }
+
+  .top-left {
+    display: flex;
+  }
+
+  .order-id {
+    font-weight: 500;
+  }
+
+  .fw-500 {
+    font-weight: 500 !important;
+  }
+
+  .fw-600 {
+    font-weight: 600 !important;
+  }
+
+input {
+  font-weight: 500;
+
+} 
+
+.number:focus {
+    border-bottom: 3px solid #34A853 !important;
+}
+
+label {
+  color: #34A853;
+  /* font-weight: 500; */
+}
+
+.form-control {
+  font-weight: 500 !important;
+}
+
+.w-80{
+  width: 80%;
+}
+
+.payment-method {
+    font-weight: 600;
+    font-size: 20px;
+}
+
+.active  {
+  background-color:#00C52A !important;
+  color: white !important;
+}
+
+
+
+
+
+
+
+
+
