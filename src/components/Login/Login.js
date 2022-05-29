@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from "react";
 import QRCode from "qrcode.react";
+import axios from "axios";
+import { Spinner } from "react-bootstrap";
 import moment from "moment";
 import Countdown from "react-countdown";
+import { useSnackbar } from "react-simple-snackbar";
 
 import logo from "../../logo.svg";
 import sharetrip from "../../sharetrip.svg";
@@ -11,6 +14,8 @@ import "./Login.css";
 
 import MerchantDetailsApi from "../../services/MerchantDetails.service";
 import LoginToPay from "../../services/LoginToPay.service";
+import SendOtpService from "../../services/SendOtp";
+import VerifyOtpService from "../../services/VerifyOtp";
 
 import { pusherChanelForQR } from "../../utils/pusher";
 import ErrorShow from "../ErrorShow";
@@ -23,7 +28,7 @@ const Login = () => {
   const [pin, setPin] = useState("");
   // start my code
   const [orderId, setOrderId] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState({});
   const [pay_type, set_pay_type] = useState("login");
   const [countDownValue, setCountDownValue] = useState(300000);
@@ -31,6 +36,15 @@ const Login = () => {
   const [currentTime, setCurrentTime] = useState("");
 
   // end my code
+  const [openSnackbar, closeSnackbar] = useSnackbar({
+    position: "top-right",
+    style: {
+      backgroundColor: "#e74c3c",
+      color: "#fff",
+      fontSize: "16px",
+      textAlign: "center",
+    },
+  });
 
   const {
     register,
@@ -117,8 +131,83 @@ const Login = () => {
       }
     } catch (error) {
       console.log("error code", error.response.data.code);
+
+      openSnackbar(error.response.data.messages[0]);
       setErrorToken(true);
     }
+  };
+
+  const sendOtp = async () => {
+    setLoading(true);
+
+    const url = window.location;
+    const token = new URLSearchParams(url.search).get("token");
+    const payload = {
+      order_id: summary.order.id,
+      token,
+      mobile_number: `+880${mobileNum}`,
+    };
+    console.log("payload send otp", payload);
+
+    try {
+      let res = await axios.post(
+        `${process.env.REACT_APP_PAYMENT_GATWAY_URL}/send-otp`,
+        payload
+      );
+      // openSnackbar("else", res);
+      if (res.data.code === 200) {
+        setCurrentPage("Otp");
+        console.log("res", res);
+      } else {
+        openSnackbar(res.data.messages[0]);
+      }
+    } catch (error) {
+      let err = error.response.data?.errors?.mobile_number[0];
+      if (err) {
+        openSnackbar(err);
+      } else {
+        let err2 = error.response?.messages?.messages[0];
+        openSnackbar(err2);
+      }
+    }
+
+    setLoading(false);
+  };
+
+  const VerifyOtp = async () => {
+    setLoading(true);
+
+    const url = window.location;
+    const token = new URLSearchParams(url.search).get("token");
+    const payload = {
+      order_id: summary.order.id,
+      token,
+      mobile_number: `+880${mobileNum}`,
+      otp: otp,
+    };
+
+    try {
+      let res = await axios.post(
+        `${process.env.REACT_APP_PAYMENT_GATWAY_URL}/verify-otp`,
+        payload
+      );
+      if (res.data.code === 200) {
+        setCurrentPage("Pin");
+        console.log("res", res);
+      } else {
+        openSnackbar(res.data.messages[0]);
+      }
+    } catch (error) {
+      console.log("ddddd", error.response.data.messages);
+      let err = error.response.data?.errors?.otp[0];
+      if (err) {
+        openSnackbar(err);
+      } else {
+        let err2 = error.response.data.messages[0];
+        openSnackbar(err2);
+      }
+    }
+    setLoading(false);
   };
 
   const onSubmit = async () => {
@@ -129,18 +218,26 @@ const Login = () => {
     const payload = {
       order_id: summary.order.id,
       token,
-      mobile_number: mobileNum,
-      password: otp,
+      mobile_number: `+880${mobileNum}`,
+      otp: otp,
+      pin: pin,
     };
-    const res = await LoginToPay.login(payload);
-    // console.log("res", res);
-    if (res.data.code === 200) {
-      console.log("test", res.data);
-    } else {
-      // setError(true);
-      // setErrorText(res.data.messages);
-      setLoading(false);
+
+    try {
+      let res = await axios.post(
+        `${process.env.REACT_APP_PAYMENT_GATWAY_URL}/execute`,
+        payload
+      );
+      if (res.data.code === 200) {
+      } else {
+        openSnackbar(res.data.messages[0]);
+      }
+    } catch (error) {
+      let err = error.response.data.messages[0];
+      openSnackbar(err);
     }
+
+    setLoading(false);
   };
 
   const handleCancel = () => {
@@ -178,7 +275,7 @@ const Login = () => {
       {!errorToken ? (
         <div className="gateway">
           <div className="form-signin">
-            <form onSubmit={handleSubmit(onSubmit)}>
+            <form>
               {/* Header    */}
 
               <div className="container header p-4 py-3">
@@ -269,7 +366,7 @@ const Login = () => {
                         maxLength="10"
                         pattern="[0-9]*"
                         value={mobileNum}
-                        onChange={numericOnly}
+                        onChange={(e) => setMobileNum(e.target.value)}
                         required
                       />
                       <label htmlFor="phone">Mobile number</label>
@@ -350,32 +447,57 @@ const Login = () => {
                     className="w-50 btn btn-lg button-close fw-bold text-white rounded-0 py-3 fs-4"
                     value="Close"
                   />
-                  <input
-                    type="submit"
-                    className="w-50 btn btn-lg btn-confirm fw-bold text-white rounded-0 fs-4"
-                    value="Confirm"
-                    onClick={() => confirmNum(mobileNum)}
-                  />
+                  {!loading ? (
+                    <input
+                      className="w-50 btn btn-lg btn-confirm fw-bold text-white rounded-0 fs-4"
+                      value="Continue"
+                      onClick={sendOtp}
+                    />
+                  ) : (
+                    <div className="w-50 btn btn-lg btn-confirm fw-bold text-white rounded-0 fs-4">
+                      <Spinner
+                        animation="border"
+                        style={{ position: "relative", top: 10 }}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
               {currentPage === "Otp" && (
                 <div className="d-flex">
-                  <input
-                    type="submit"
-                    className="w-100 btn btn-lg btn-confirm fw-bold text-white rounded-0 fs-4 py-3"
-                    value="Confirm"
-                    onClick={() => confirmOtp(otp)}
-                  />
+                  {!loading ? (
+                    <input
+                      className="w-100 btn btn-lg btn-confirm fw-bold text-white rounded-0 fs-4"
+                      value="Continue"
+                      onClick={VerifyOtp}
+                    />
+                  ) : (
+                    <div className="w-100 btn btn-lg btn-confirm fw-bold text-white rounded-0 fs-4">
+                      <Spinner
+                        animation="border"
+                        style={{ position: "relative", top: 5 }}
+                      />
+                    </div>
+                  )}
                   {/* <input className="w-100 btn btn-lg btn-confirm fw-bold text-white rounded-0 fs-4 py-3" onClick={() => setCurrentPage("Pin")}>Confirm</input> */}
                 </div>
               )}
               {currentPage === "Pin" && (
                 <div className="d-flex">
-                  <input
-                    type="submit"
-                    className="w-100 btn btn-lg btn-confirm fw-bold text-white rounded-0 fs-4 py-3"
-                    value="Confirm"
-                  />
+                  {!loading ? (
+                    <input
+                      className="w-100 btn btn-lg btn-confirm fw-bold text-white rounded-0 fs-4"
+                      value="Confirm"
+                      onClick={onSubmit}
+                    />
+                  ) : (
+                    <div className="w-100 btn btn-lg btn-confirm fw-bold text-white rounded-0 fs-4">
+                      <Spinner
+                        animation="border"
+                        style={{ position: "relative", top: 5 }}
+                      />
+                    </div>
+                  )}
                   {/* <input className="w-100 btn btn-lg btn-confirm fw-bold text-white rounded-0 fs-4 py-3" onClick>Confirm</input> */}
                 </div>
               )}
